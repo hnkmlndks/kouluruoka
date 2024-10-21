@@ -10,7 +10,7 @@ logging.basicConfig(
     filemode="a",
     encoding='utf-8',
     format="%(asctime)s [%(levelname)s] %(message)s",
-    level=logging.DEBUG
+    level=logging.INFO
 )
 
 # Function to remove forbidden characters using list comprehension
@@ -32,7 +32,7 @@ def send_telegram(message):
      # https://api.telegram.org/bot7716411342:AAEjzGb-c5xMSPvcOpPbsdUwTXBwjcAqzrw/sendMessage?chat_id=335513962&text="Hello, this is a message from the bot"
     logging.debug(f"Telegram message: {message}")
     # Send the request
-    # response = requests.get(url)
+    response = requests.get(url)
     # Check if the message was sent successfully
     if response.status_code == 200:
         logging.info("Message published successfully to instagram group: {group")

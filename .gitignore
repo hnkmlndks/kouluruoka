@@ -1,5 +1,3 @@
-/weekly_schedule.pdf
-../Lesschema-alert/lesschema.pdf
-settings/secrets.json
+config/secrets.json
 __pycache__
 *.log

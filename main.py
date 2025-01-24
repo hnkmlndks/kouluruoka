@@ -1,15 +1,12 @@
 import requests
-from bs4 import BeautifulSoup
-import re
 import logging
+from bs4 import BeautifulSoup
 from secret_loader import get_secrets
 from translations import Translations
 
 TEST = True
 URL = "https://kouluruoka.fi/menu/helsinki_kapylanperuskouluhykkyla/"
-
 FORBIDDEN_CHARACHTERS = ['&']
-
 SECRETS = get_secrets()
 translator = Translations()
 
@@ -70,7 +67,7 @@ def send_telegram(message:str) -> None:
 #    return re.sub(r'\s*\([^)]*\)', '', text).strip()
 
 
-def process_string(input_string:str) -> str:
+def remove_parantheses(input_string:str) -> str:
     items = input_string.split('), ')
     processed_items = []
 
@@ -79,30 +76,60 @@ def process_string(input_string:str) -> str:
         main_part = main_part.strip()
 
         if 'Veg' in parentheses_part:
-            processed_items.append(f"{main_part}\U0001F33F")
+            processed_items.append(f"{main_part} \U0001F33F")
         else:
             processed_items.append(main_part)
 
     return ', '.join(processed_items)
 
+def fetch_and_parse_webpage(url:str) -> BeautifulSoup:
+    """
+    Fetches a webpage and parses its content using BeautifulSoup.
+
+    Args:
+    url (str): The URL of the webpage to fetch.
+
+    Returns:
+    BeautifulSoup: A BeautifulSoup object containing the parsed HTML content.
+
+    Raises:
+    SystemExit: If the webpage cannot be retrieved (non-200 status code).
+    """
+    try:
+        # Send a GET request to the URL
+        response = requests.get(url)
+        logging.debug(f"Response: {response}")
+
+        # Check if the request was successful
+        if response.status_code != 200:
+            logging.warning(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+            raise SystemExit(1)
+
+        # Parse the HTML content using BeautifulSoup
+        soup = BeautifulSoup(response.content, 'html.parser')
+        logging.debug(f"Soup: {soup}")
+
+        return soup
+
+    except requests.RequestException as e:
+        logging.error(f"An error occurred while fetching the webpage: {e}")
+        raise SystemExit(1)
+
+# Example usage:
+# URL = "https://example.com"
+# soup = fetch_and_parse_webpage(URL)
+# Now you can use 'soup' to further process the webpage content
+
+
 if __name__ == "__main__":
     # URL of the kouluruoka menu page
-
-    # Send an HTTP GET request to the URL
-    response = requests.get(URL)
-    logging.debug(f"response: {response}")
-    # Check if the request was successful
-    if response.status_code != 200:
-        logging.warning(f"Failed to retrieve the webpage. Status code: {response.status_code}")
-        exit(1)
-
-    # Parse the HTML content using BeautifulSoup
-    soup:BeautifulSoup = BeautifulSoup(response.content, 'html.parser')
+    soup = fetch_and_parse_webpage(URL)
+    
     # Find all day menu items
     logging.debug(f"soup: {soup}")
     # print(soup)
-    school = soup.find('h1', id='pageTitle').get_text(strip=True)
-    logging.debug(f"school:{school}")
+    schoolName = soup.find('h1', id='pageTitle').get_text(strip=True)
+    logging.debug(f"school:{schoolName}")
     #print(f"school: {school}")
     message = ""
     # Extract lunch options for each day
@@ -128,7 +155,7 @@ if __name__ == "__main__":
         lunch_options = ""
         for item in items:
             # print(item)
-            lunch_options += f"\n\u2022{process_string(item)}"
+            lunch_options += f"\n\u2022{remove_parantheses(item)}"
 
         # break
 
@@ -137,14 +164,16 @@ if __name__ == "__main__":
         #print("Lunch option:", lunch_options)
 
         message += f"<u>{day_title}</u>{lunch_options}\n"
+    
+    # remove characters like & as they create an error in the telegram message
     message = remove_forbidden_characters(message, FORBIDDEN_CHARACHTERS)
 
     # Add translations
     message = translator.get_translated_message(message=message)
 
-    message = f"{school}\n{message}"
+    message = f"{schoolName}\n{message}"
     logging.info(message)
-    logging.info(f"Telegram message prepared for {school}")
+    logging.info(f"Telegram message prepared for {schoolName}")
 
     send_telegram(message)
 

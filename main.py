@@ -138,18 +138,24 @@ if __name__ == "__main__":
 
     for article in articles:
         # Extract the day title from <h2> tag
-        day_title = article.find('h2').text
+        day_title = article.find('h2').get_text(strip=True)
+        # day_title = article.find('h2').text
 
         # Find all div elements that are direct children of the article
-        div_elements = article.find_all('div', recursive=False)
+        #div_elements = article.find_all('div', recursive=False)
 
         # Extract the Lounas items and save them as items
         items = []
-        for div in div_elements:
-            span = div.find('span')
-            if span:
-                # Appends the text of the span to the items list.
-                items.append(span.text)
+        # Inspect top-level divs to find the one with h3 containing "Lounas"
+        for div in article.find_all('div', recursive=False):
+            h3 = div.find('h3')
+            if h3 and 'Lounas' in h3.get_text():
+                # Find the sibling div that contains the menu span
+                menu_div = h3.find_next_sibling('div')
+                if menu_div:
+                    span = menu_div.find('span')
+                    if span:
+                        items.append(span.get_text(strip=True))
 
         # Print the extracted items
         lunch_options = ""

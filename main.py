@@ -3,29 +3,41 @@ import logging
 from bs4 import BeautifulSoup
 from secret_loader import get_secrets
 from translations import Translations
+from pathlib import Path
+import logging, os, sys
 
-TEST = True
+test = True
 URL = "https://kouluruoka.fi/menu/helsinki_kapylanperuskouluhykkyla/"
 FORBIDDEN_CHARACHTERS = ['&']
 SECRETS = get_secrets()
 translator = Translations()
 
-if TEST:
-    logging.basicConfig(
-        filename="app.log",
-        filemode="w",
-        encoding='utf-8',
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        level=logging.DEBUG
-    )
-else:
-    logging.basicConfig(
-        filename="app.log",
-        filemode="a",
-        encoding='utf-8',
-        format="%(asctime)s [%(levelname)s] %(message)s",
-        level=logging.INFO
-    )
+APP_DIR = Path(__file__).resolve().parent
+
+# Logging dir from env with fallback
+LOG_DIR = Path(os.getenv("KOULURUOKA_LOG_DIR", APP_DIR / "logs"))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Reset existing handlers to avoid duplicates
+for h in list(logging.root.handlers):
+    logging.root.removeHandler(h)
+
+file_name = "debug_main.log" if test else "info_main.log"   # adjust per script
+file_mode = "w" if test else "a"
+
+handlers = []
+fh = logging.FileHandler(LOG_DIR / file_name, mode=file_mode, encoding="utf-8")
+fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+fh.setLevel(logging.DEBUG if test else logging.INFO)
+handlers.append(fh)
+
+if os.getenv("KOULURUOKA_CONSOLE_LOG", "0").lower() in ("1", "true"):
+    ch = logging.StreamHandler(stream=sys.stdout)
+    ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    ch.setLevel(logging.DEBUG if test else logging.INFO)
+    handlers.append(ch)
+
+logging.basicConfig(level=logging.DEBUG if test else logging.INFO, handlers=handlers)
 
 # Function to remove forbidden characters using list comprehension
 def remove_forbidden_characters(input_string:str, forbidden_characters:list) -> str:

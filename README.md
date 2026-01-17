@@ -1,7 +1,7 @@
 
 # 🛰️ School Menu Telegram Bot
 
-This Python script fetches the lunch menu from a specific school website, processes the data, translates it, and sends the result via Telegram.
+This Python script fetches the lunch menu from the kouluruoka.fi website, processes the data, translates it, and sends the result via Telegram.
 
 ## 🧪 Features
 

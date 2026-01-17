@@ -119,7 +119,7 @@ def fetch_and_parse_webpage(url:str) -> BeautifulSoup:
 
         # Parse the HTML content using BeautifulSoup
         soup = BeautifulSoup(response.content, 'html.parser')
-        logging.debug(f"Soup: {soup}")
+        #logging.debug(f"Soup: {soup}")
 
         return soup
 

@@ -110,7 +110,7 @@ def fetch_and_parse_webpage(url:str) -> BeautifulSoup:
     try:
         # Send a GET request to the URL
         response = requests.get(url)
-        logging.debug(f"Response: {response}")
+        #logging.debug(f"Response: {response}")
 
         # Check if the request was successful
         if response.status_code != 200:
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     soup = fetch_and_parse_webpage(URL)
     
     # Find all day menu items
-    logging.debug(f"soup: {soup}")
+    #logging.debug(f"soup: {soup}")
     # print(soup)
     schoolName = soup.find('h1', id='pageTitle').get_text(strip=True)
     logging.debug(f"school:{schoolName}")

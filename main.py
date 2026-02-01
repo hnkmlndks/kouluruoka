@@ -1,10 +1,12 @@
 import requests
-import logging
 from bs4 import BeautifulSoup
 from secret_loader import get_secrets
 from translations import Translations
 from pathlib import Path
-import logging, os, sys
+from logging_config import setup_uniform_logging  # ← Lokaal in kouluruoka/
+
+test = True
+logger = setup_uniform_logging("kouluruoka", test=test)  # ← 1 regel!
 
 test = True
 URL = "https://kouluruoka.fi/menu/helsinki_kapylanperuskouluhykkyla/"
@@ -12,32 +14,6 @@ FORBIDDEN_CHARACHTERS = ['&']
 SECRETS = get_secrets()
 translator = Translations()
 
-APP_DIR = Path(__file__).resolve().parent
-
-# Logging dir from env with fallback
-LOG_DIR = Path(os.getenv("KOULURUOKA_LOG_DIR", APP_DIR / "logs"))
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-# Reset existing handlers to avoid duplicates
-for h in list(logging.root.handlers):
-    logging.root.removeHandler(h)
-
-file_name = "debug_main.log" if test else "info_main.log"   # adjust per script
-file_mode = "w" if test else "a"
-
-handlers = []
-fh = logging.FileHandler(LOG_DIR / file_name, mode=file_mode, encoding="utf-8")
-fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-fh.setLevel(logging.DEBUG if test else logging.INFO)
-handlers.append(fh)
-
-if os.getenv("KOULURUOKA_CONSOLE_LOG", "0").lower() in ("1", "true"):
-    ch = logging.StreamHandler(stream=sys.stdout)
-    ch.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-    ch.setLevel(logging.DEBUG if test else logging.INFO)
-    handlers.append(ch)
-
-logging.basicConfig(level=logging.DEBUG if test else logging.INFO, handlers=handlers)
 
 # Function to remove forbidden characters using list comprehension
 def remove_forbidden_characters(input_string:str, forbidden_characters:list) -> str:
@@ -68,12 +44,12 @@ def send_telegram(message:str) -> None:
 
     # Send the request
     response = requests.get(url, params=params)
-    logging.debug(f"Telegram message: {message}")
+    logger.debug(f"Telegram message: {message}")
     # Check if the message was sent successfully
     if response.status_code == 200:
-        logging.info("Message published successfully to instagram group: {group")
+        logger.info("Message published successfully to instagram group: {group")
     else:
-        logging.error("Failed to publish the message to instagram. Status code:", response.status_code)
+        logger.error("Failed to publish the message to instagram. Status code:", response.status_code)
 
 # def clean_text(text):
 #    return re.sub(r'\s*\([^)]*\)', '', text).strip()
@@ -110,21 +86,21 @@ def fetch_and_parse_webpage(url:str) -> BeautifulSoup:
     try:
         # Send a GET request to the URL
         response = requests.get(url)
-        #logging.debug(f"Response: {response}")
+        #logger.debug(f"Response: {response}")
 
         # Check if the request was successful
         if response.status_code != 200:
-            logging.warning(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+            logger.warning(f"Failed to retrieve the webpage. Status code: {response.status_code}")
             raise SystemExit(1)
 
         # Parse the HTML content using BeautifulSoup
         soup = BeautifulSoup(response.content, 'html.parser')
-        #logging.debug(f"Soup: {soup}")
+        #logger.debug(f"Soup: {soup}")
 
         return soup
 
     except requests.RequestException as e:
-        logging.error(f"An error occurred while fetching the webpage: {e}")
+        logger.error(f"An error occurred while fetching the webpage: {e}")
         raise SystemExit(1)
 
 # Example usage:
@@ -138,10 +114,10 @@ if __name__ == "__main__":
     soup = fetch_and_parse_webpage(URL)
     
     # Find all day menu items
-    #logging.debug(f"soup: {soup}")
+    #logger.debug(f"soup: {soup}")
     # print(soup)
     schoolName = soup.find('h1', id='pageTitle').get_text(strip=True)
-    logging.debug(f"school:{schoolName}")
+    logger.debug(f"school:{schoolName}")
     #print(f"school: {school}")
     message = ""
     # Extract lunch options for each day
@@ -190,8 +166,8 @@ if __name__ == "__main__":
     message = translator.get_translated_message(message=message)
 
     message = f"{schoolName}\n{message}"
-    logging.info(message)
-    logging.info(f"Telegram message prepared for {schoolName}")
+    logger.info(message)
+    logger.info(f"Telegram message prepared for {schoolName}")
 
     send_telegram(message)
 

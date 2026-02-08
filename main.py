@@ -166,7 +166,7 @@ if __name__ == "__main__":
     message = translator.get_translated_message(message=message)
 
     message = f"{schoolName}\n{message}"
-    logger.info(message)
+    # logger.info(message)
     logger.info(f"Telegram message prepared for {schoolName}")
 
     send_telegram(message)

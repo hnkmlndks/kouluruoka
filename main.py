@@ -112,62 +112,55 @@ def fetch_and_parse_webpage(url:str) -> BeautifulSoup:
 if __name__ == "__main__":
     # URL of the kouluruoka menu page
     soup = fetch_and_parse_webpage(URL)
-    
-    # Find all day menu items
-    #logger.debug(f"soup: {soup}")
-    # print(soup)
+
     schoolName = soup.find('h1', id='pageTitle').get_text(strip=True)
     logger.debug(f"school:{schoolName}")
-    #print(f"school: {school}")
-    message = ""
+
     # Extract lunch options for each day
     articles = soup.find_all('article')
-    #print(articles)
+
+    # --- CHECK 1: If no article tags exist at all ---
+    if not articles:
+        logger.info(f"No content found for {schoolName}. Skipping Telegram notification (likely a holiday).")
+        exit(0)
+
+    message_body = ""
 
     for article in articles:
-        # Extract the day title from <h2> tag
         day_title = article.find('h2').get_text(strip=True)
-        # day_title = article.find('h2').text
 
-        # Find all div elements that are direct children of the article
-        #div_elements = article.find_all('div', recursive=False)
-
-        # Extract the Lounas items and save them as items
         items = []
         # Inspect top-level divs to find the one with h3 containing "Lounas"
         for div in article.find_all('div', recursive=False):
             h3 = div.find('h3')
             if h3 and 'Lounas' in h3.get_text():
-                # Find the sibling div that contains the menu span
                 menu_div = h3.find_next_sibling('div')
                 if menu_div:
                     span = menu_div.find('span')
                     if span:
                         items.append(span.get_text(strip=True))
 
-        # Print the extracted items
         lunch_options = ""
         for item in items:
-            # print(item)
             lunch_options += f"\n\u2022{remove_parantheses(item)}"
 
-        # break
+        # Only add the day to the message if it actually has lunch items listed
+        if lunch_options.strip():
+            message_body += f"<u>{day_title}</u>{lunch_options}\n"
 
-        # Print the extracted values
-        #print("Day Title:", day_title)
-        #print("Lunch option:", lunch_options)
+    # --- CHECK 2: If articles exist but they are all completely empty ---
+    if not message_body.strip():
+        logger.info(f"Menu articles are empty for {schoolName}. Skipping Telegram notification due to holidays.")
+        exit(0)
 
-        message += f"<u>{day_title}</u>{lunch_options}\n"
-    
-    # remove characters like & as they create an error in the telegram message
-    message = remove_forbidden_characters(message, FORBIDDEN_CHARACHTERS)
+    # Remove characters like & as they create an error in the telegram message
+    message_body = remove_forbidden_characters(message_body, FORBIDDEN_CHARACHTERS)
 
     # Add translations
-    message = translator.get_translated_message(message=message)
+    message_body = translator.get_translated_message(message=message_body)
 
-    message = f"{schoolName}\n{message}"
-    # logger.info(message)
+    # Combine school name with the verified message content
+    final_message = f"{schoolName}\n{message_body}"
+
     logger.info(f"Telegram message prepared for {schoolName}")
-
-    send_telegram(message)
-
+    send_telegram(final_message)
